@@ -1,0 +1,31 @@
+
+@startuml
+hide footbox
+skinparam BoxPadding 10
+
+title OpneIDConnect/OAuth2.0 認可コードフロー + PKCE　シーケンス図
+participant "SPA" as spa
+
+box "IDaaS(ex.Auth0)" 
+    participant "認可エンドポイント\n/authorize" as auth0AuthorizeEndpoint
+    participant "トークンエンドポイント\n/token" as auth0TokenEndpoint
+end box
+
+== 認証処理 ==
+spa -> auth0AuthorizeEndpoint: 認可リダイレクト\nhttp://<IDaaS domain>/authorize?\n response_type=code\n **code_challenge=<hash値>**\n **code_challenge_method=S256**
+hnote over auth0AuthorizeEndpoint
+    認証処理は認可コードフローと同様
+end note
+auth0AuthorizeEndpoint -> auth0AuthorizeEndpoint: code_challenge,\ncode_challenge_method\nを保存
+spa <- auth0AuthorizeEndpoint: リダイレクト\nhttp://localhost:3000/callback?\n code=xxx
+
+== トークン取得 ==
+spa -> auth0TokenEndpoint: トークンリクエスト\nPOST: http://<IDaaS domain>/token\n code=xxx\n **code_verifier=<hash前の値>**
+auth0TokenEndpoint -> auth0TokenEndpoint: PKCE検証
+note over auth0TokenEndpoint
+    code_verifier を code_challenge_method 
+    でハッシュ化し、code_challenge と突合する
+end note
+spa <- auth0TokenEndpoint: IDトークン/アクセストークン
+
+@enduml

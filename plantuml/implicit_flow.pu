@@ -1,0 +1,26 @@
+
+@startuml
+hide footbox
+skinparam BoxPadding 10
+
+title OpneIDConnect/OAuth2.0 インプリシットフロー　シーケンス図
+participant "SPA" as spa
+
+box "IDaaS(ex.Auth0)" 
+    participant "認可エンドポイント\n/authorize" as auth0AuthorizeEndpoint
+    participant "トークンエンドポイント\n/token" as auth0TokenEndpoint
+end box
+
+participant "API" as api
+
+== 認証処理/トークン取得 ==
+spa -> auth0AuthorizeEndpoint: 認可リダイレクト\nhttp://<IDaaS domain>/authorize?\n client_id=IDaaS側の登録値\n **response_type=token id_token**\n scope=openid profile email\n redirect_uri=http://localhost:3000/callback
+hnote over auth0AuthorizeEndpoint
+    認証処理は認可コードフローと同様
+end note
+spa <- auth0AuthorizeEndpoint: リダイレクト\nhttp://localhost:3000/callback?\n **id_token=xxx**\n **access_token=yyy**
+hnote over auth0AuthorizeEndpoint
+以降は認可コードフローと同様
+end note
+
+@enduml

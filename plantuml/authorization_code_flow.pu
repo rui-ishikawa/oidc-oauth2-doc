@@ -1,0 +1,65 @@
+@startuml
+hide footbox
+skinparam BoxPadding 10
+
+title OpneIDConnect/OAuth2.0 認可コードフロー　シーケンス図
+participant "SPA" as spa
+
+box "IDaaS(ex.Auth0)" 
+    participant "認可エンドポイント\n/authorize" as auth0AuthorizeEndpoint
+    participant "トークンエンドポイント\n/token" as auth0TokenEndpoint
+    participant "wellknown / JWKS\nエンドポイント" as auth0JwksEndpoint
+end box
+
+box "IdP(ex. Google)" 
+    participant "認可エンドポイント\n/authorize" as idpAuthorizeEndpoint
+    participant "トークンエンドポイント\n/token" as idpTokenEndpoint
+end box
+
+participant "API" as api
+
+== 認証処理 ==
+spa -> auth0AuthorizeEndpoint: 認可リダイレクト\nhttp://<IDaaS domain>/authorize?\n client_id=IDaaS側の登録値\n **response_type=code**\n scope=openid profile user\n redirect_uri=http://localhost:3000/callback
+alt ローカルアカウントの場合
+    auth0AuthorizeEndpoint -> auth0AuthorizeEndpoint: 資格情報を入力しログイン
+else 外部IdPの場合
+    auth0AuthorizeEndpoint -> idpAuthorizeEndpoint: 認可リダイレクト
+    idpAuthorizeEndpoint -> idpAuthorizeEndpoint: 資格情報を入力しログイン
+    auth0AuthorizeEndpoint <- idpAuthorizeEndpoint: リダイレクト
+    auth0AuthorizeEndpoint -> idpTokenEndpoint: トークンリクエスト
+    return IDトークン/アクセストークン
+end
+spa <- auth0AuthorizeEndpoint: リダイレクト\nhttp://localhost:3000/callback?\n **code=xxx**
+
+== トークン取得 ==
+spa -> auth0TokenEndpoint: トークンリクエスト\nPOST: http://<IDaaS domain>/token\n client_id=IDaaS側の登録値\n code=xxx
+auth0TokenEndpoint -> auth0TokenEndpoint: 認可コードを検証
+spa <- auth0TokenEndpoint: **IDトークン/アクセストークン**
+
+== IDトークン検証 ==
+spa -> auth0JwksEndpoint: 公開鍵を取得
+return
+alt IDトークンを検証
+    spa -> spa: 署名を検証
+    spa -> spa: exp: 有効期限を検証
+    spa -> spa: iss: トークン発行者を検証
+    spa -> spa: aud: JWT受信者（SPA）を検証
+    spa -> spa: nonceを検証
+end
+spa -> spa: ログイン状態とする
+
+== APIアクセス/アクセストークン検証 ==
+spa -> api: リクエスト\nhttp://<api domain>/user\n Authorization Bearer <アクセストークン>
+api -> auth0JwksEndpoint: 公開鍵を取得
+return
+alt アクセストークンを検証
+    api -> api: 署名を検証
+    api -> api: exp: 有効期限を検証
+    api -> api: iss: トークン発行者を検証
+    api -> api: aud: JWT受信者（APIサーバー）を検証
+    api -> api: azp: 認証者（SPA）を検証
+    api -> api: scope: スコープを検証\n scopeにuserが含まれること
+end
+spa <- api: レスポンス
+
+@enduml
