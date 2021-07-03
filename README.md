@@ -61,3 +61,18 @@ TBD
 - 認可サーバ側で、ハッシュ元の値(code_verifier)を code_challenge_method のアルゴリズムでハッシュ化し、ハッシュ化した値(code_challenge)と突合する
 
 ![pkce](/img/pkce.png "pkce")
+
+### 1.5 JWT 認証
+
+API サーバが認証処理を行う場合のシーケンス図
+![jwt_auth](/img/jwt_auth.png "jwt_auth")
+
+### 1.6 JWT 認証（SameSiteCookie）
+
+API サーバが認証処理を行い、Cookie に JWT を設定するケース
+![jwt_auth_cookie](/img/jwt_auth_cookie.png "jwt_auth_cookie")
+
+### 1.7 ハイブリッドフロー + SameSiteCookie
+
+OpenIDConnect / OAuth2.0 にて、アクセストークンを Cookie に設定する方法案
+![hybrid_flow_cookie](/img/hybrid_flow_cookie.png "hybrid_flow_cookie")
