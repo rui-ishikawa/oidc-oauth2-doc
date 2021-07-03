@@ -1,0 +1,22 @@
+
+@startuml
+hide footbox
+skinparam BoxPadding 10
+
+title JWT認証　シーケンス図
+participant "SPA" as spa
+participant "API && \n認証サーバー" as api
+
+== 認証処理/JWT取得 ==
+spa -> spa: ユーザが資格情報を入力
+spa -> api: ログインリクエスト\n mailAddress\n password
+api -> api: 資格情報をチェック
+api -> api: JWTを生成
+spa <-- api: JWTをレスポンス
+
+== リソースへアクセス ==
+spa -> api: リクエスト\nhttp://<api domain>/user\n Authorization Bearer <JWT>
+api -> api: JWTをチェック
+spa <-- api: レスポンス
+
+@enduml

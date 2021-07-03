@@ -1,0 +1,37 @@
+
+@startuml
+hide footbox
+skinparam BoxPadding 10
+
+title JWT認証（Cookie）　シーケンス図
+
+box ※同一ドメイン
+    participant "SPA" as spa
+    participant "API && \n認証サーバー" as api
+end box
+
+== 認証処理/JWT取得 ==
+spa -> spa: ユーザが資格情報を入力
+spa -> api: ログインリクエスト\n mailAddress\n password
+api -> api: 資格情報をチェック
+api -> api: JWTを生成
+api -> api: Set-Cookie\nレスポンスヘッダーを設定
+note left
+    Set-Cookie
+        jwt=xxx;
+        SameSite=Strict;
+        HttpOnly;
+end note
+spa <-- api: レスポンス
+
+== リソースへアクセス ==
+note over spa
+    同じドメインへのリクエスト時
+    Cookieが付与される
+end note
+spa -> api: リクエスト\nhttp://<api domain>/user\n Cookie: jwt=xxx
+api -> api: CookieからJWTを取得
+api -> api: JWTをチェック
+spa <-- api: レスポンス
+
+@enduml

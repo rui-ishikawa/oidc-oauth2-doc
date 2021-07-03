@@ -1,0 +1,59 @@
+@startuml
+hide footbox
+skinparam BoxPadding 10
+
+title OpneIDConnect/OAuth2.0 認可コードフロー　シーケンス図
+
+box ※同一ドメイン
+    participant "SPA" as spa
+    participant "API" as api
+end box
+
+box "IDaaS(ex.Auth0)" 
+    participant "認可エンドポイント\n/authorize" as auth0AuthorizeEndpoint
+    participant "トークンエンドポイント\n/token" as auth0TokenEndpoint
+    participant "wellknown / JWKS\nエンドポイント" as auth0JwksEndpoint
+end box
+
+== 認証処理 ==
+spa -> auth0AuthorizeEndpoint: 認可リダイレクト\nhttp://<IDaaS domain>/authorize?\n **response_type=code id_token**
+hnote over auth0AuthorizeEndpoint
+    認証処理は認可コードフローと同様
+end note
+spa <- auth0AuthorizeEndpoint: リダイレクト\nhttp://localhost:3000/callback?\n **code=xxx&&id_token=yyy**
+
+== IDトークン検証 ==
+hnote over spa
+    検証処理は認可コードフローと同様
+end note
+
+== アクセストークン取得 ==
+spa -> api: ログインリクエスト\n **code=xxx**
+api -> auth0TokenEndpoint: トークンリクエスト\nPOST: http://<IDaaS domain>/token\n code=xxx
+auth0TokenEndpoint -> auth0TokenEndpoint: 認可コードを検証
+api <-- auth0TokenEndpoint: **アクセストークン**
+
+api -> api: Set-Cookie\nレスポンスヘッダーを設定
+note left
+    Set-Cookie
+        jwt=xxx;
+        SameSite=Strict;
+        HttpOnly;
+end note
+
+spa <-- api: レスポンス
+
+== APIアクセス/アクセストークン検証 ==
+spa -> api: リクエスト\nhttp://<api domain>/user\n Cookie: jwt=xxx
+api -> api: CookieからJWTを取得
+
+api -> auth0JwksEndpoint: 公開鍵を取得
+return
+api -> api: アクセストークンを検証
+hnote over api
+    検証処理は認可コードフローと同様
+end note
+
+spa <- api: レスポンス
+
+@enduml
